@@ -125,7 +125,6 @@ Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las h
 
 ![example](/resources/capture.png)
 
----
 
 ## Motivación
 
