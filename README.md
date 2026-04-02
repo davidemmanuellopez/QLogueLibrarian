@@ -122,6 +122,9 @@ This project is licensed under the **GNU General Public License v3.0**. See [LIC
 
 Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las herramientas KORG logue-sdk/logue-cli, construida con **Qt6** y **CMake**. Funciona como wrapper de la herramienta oficial [`logue-cli`](https://github.com/korginc/logue-sdk/tree/main/tools/logue-cli).
 
+
+![example](/resources/capture.png)
+
 ---
 
 ## Motivación
