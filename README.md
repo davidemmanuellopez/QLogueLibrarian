@@ -4,6 +4,8 @@
 
 A minimal cross-platform GUI wrapper for KORG logue-sdk/logue-cli tools, built with **Qt6** and **CMake**. It wraps the official [`logue-cli`](https://github.com/korginc/logue-sdk/tree/main/tools/logue-cli) command-line tool to provide a graphical interface for probing MIDI ports and uploading custom oscillator/effect units to your device.
 
+![example](/resources/capture.png)
+
 ---
 
 ## Motivation
@@ -121,9 +123,6 @@ This project is licensed under the **GNU General Public License v3.0**. See [LIC
 **Autor:** David Emmanuel Lopez
 
 Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las herramientas KORG logue-sdk/logue-cli, construida con **Qt6** y **CMake**. Funciona como wrapper de la herramienta oficial [`logue-cli`](https://github.com/korginc/logue-sdk/tree/main/tools/logue-cli).
-
-
-![example](/resources/capture.png)
 
 
 ## Motivación
