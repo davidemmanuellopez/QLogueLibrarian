@@ -8,6 +8,7 @@ project(QLogueLibrarian
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
 # ── Static build option ───────────────────────────────────────────────────────
 # Usage: cmake -B build -DBUILD_STATIC=ON
@@ -22,18 +23,21 @@ if(BUILD_STATIC)
     message(STATUS "Static build enabled — output will be a standalone binary")
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Quick QuickControls2)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/model/UnitInfo.h
     src/model/UnitInfo.cpp
+    src/model/PluginListModel.h
+    src/model/PluginListModel.cpp
     src/controller/LogueCLIWrapper.h
     src/controller/LogueCLIWrapper.cpp
     src/controller/UnitHeaderParser.h
     src/controller/UnitHeaderParser.cpp
-    src/view/MainWindow.h
-    src/view/MainWindow.cpp
+    src/controller/AppController.h
+    src/controller/AppController.cpp
+    resources.qrc
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -43,6 +47,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core
     Qt6::Widgets
+    Qt6::Quick
+    Qt6::QuickControls2
 )
 
 # GCC/Clang static runtime (applied after target exists)
