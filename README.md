@@ -2,7 +2,7 @@
 
 **Author:** David Emmanuel Lopez
 
-A minimal cross-platform GUI wrapper for KORG logue-sdk/logue-cli tools, built with **Qt6** and **CMake**. It wraps the official [`logue-cli`](https://github.com/korginc/logue-sdk/tree/main/tools/logue-cli) command-line tool to provide a graphical interface for probing MIDI ports and uploading custom oscillator/effect units to your device.
+A minimal cross-platform GUI wrapper for KORG logue-sdk/logue-cli tools, built with **Qt6**, **QtQuick/QML** and **CMake**. It wraps the official [`logue-cli`](https://github.com/korginc/logue-sdk/tree/main/tools/logue-cli) command-line tool to provide a graphical interface for probing MIDI ports and uploading custom oscillator/effect units to your device.
 
 ![example](/resources/capture.png)
 
@@ -28,15 +28,22 @@ A minimal cross-platform GUI wrapper for KORG logue-sdk/logue-cli tools, built w
 
 ```
 src/
-├── main.cpp                         # Application entry point
+├── main.cpp                         # Application entry point (QQmlApplicationEngine)
 ├── model/
 │   ├── KorgEnums.h                  # Unit file extension filters
-│   └── UnitInfo.h/.cpp              # Data model for unit metadata (from manifest.json)
+│   ├── UnitInfo.h/.cpp              # Data model for unit metadata (from manifest.json)
+│   └── PluginListModel.h/.cpp       # QAbstractListModel exposed to QML ListView
 ├── controller/
 │   ├── LogueCLIWrapper.h/.cpp       # QProcess wrapper for logue-cli
-│   └── UnitHeaderParser.h/.cpp      # Extracts & parses manifest.json from .xxxunit ZIP files
-└── view/
-    └── MainWindow.h/.cpp            # Qt GUI (probe + load + plugin library)
+│   ├── UnitHeaderParser.h/.cpp      # Extracts & parses manifest.json from .xxxunit ZIP files
+│   └── AppController.h/.cpp         # C++ backend (Q_PROPERTY / Q_INVOKABLE) exposed to QML
+└── qml/
+    ├── Main.qml                     # Root ApplicationWindow
+    ├── MidiSection.qml              # Probe + In/Out ComboBoxes
+    ├── LoadSection.qml              # Unit file picker + slot + upload button
+    ├── PluginLibrary.qml            # Directory picker + SplitView (list + metadata)
+    ├── MetaPanel.qml                # Metadata grid + parameter table
+    └── LogPanel.qml                 # Live log (read-only)
 ```
 
 ## Prerequisites
@@ -47,7 +54,7 @@ src/
 |---|---|
 | CMake | 3.20 |
 | GCC (or Clang) | GCC 9+ / Clang 10+ (C++17) |
-| Qt6 (Core, Widgets) | 6.2 |
+| Qt6 (Core, Quick, QuickControls2) | 6.2 |
 
 ### Runtime Dependencies
 
@@ -58,19 +65,19 @@ src/
 **Debian / Ubuntu:**
 
 ```bash
-sudo apt install build-essential cmake qt6-base-dev
+sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev
 ```
 
 **Fedora:**
 
 ```bash
-sudo dnf install gcc-c++ cmake qt6-qtbase-devel
+sudo dnf install gcc-c++ cmake qt6-qtbase-devel qt6-qtdeclarative-devel
 ```
 
 **Arch Linux:**
 
 ```bash
-sudo pacman -S base-devel cmake qt6-base
+sudo pacman -S base-devel cmake qt6-base qt6-declarative
 ```
 
 ### Installing logue-cli
@@ -132,7 +139,7 @@ This project is licensed under the **GNU General Public License v3.0**. See [LIC
 
 **Autor:** David Emmanuel Lopez
 
-Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las herramientas KORG logue-sdk/logue-cli, construida con **Qt6** y **CMake**. Funciona como wrapper de la herramienta oficial [`logue-cli`](https://github.com/korginc/logue-sdk/tree/main/tools/logue-cli).
+Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las herramientas KORG logue-sdk/logue-cli, construida con **Qt6**, **QtQuick/QML** y **CMake**. Funciona como wrapper de la herramienta oficial [`logue-cli`](https://github.com/korginc/logue-sdk/tree/main/tools/logue-cli).
 
 
 ## Motivación
@@ -155,15 +162,22 @@ Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las h
 
 ```
 src/
-├── main.cpp                         # Punto de entrada
+├── main.cpp                         # Punto de entrada (QQmlApplicationEngine)
 ├── model/
 │   ├── KorgEnums.h                  # Filtros de extensiones de archivos unit
-│   └── UnitInfo.h/.cpp              # Modelo de datos para metadatos (desde manifest.json)
+│   ├── UnitInfo.h/.cpp              # Modelo de datos para metadatos (desde manifest.json)
+│   └── PluginListModel.h/.cpp       # QAbstractListModel expuesto al ListView de QML
 ├── controller/
 │   ├── LogueCLIWrapper.h/.cpp       # Wrapper de QProcess para logue-cli
-│   └── UnitHeaderParser.h/.cpp      # Extrae y parsea manifest.json de archivos ZIP .xxxunit
-└── view/
-    └── MainWindow.h/.cpp            # GUI Qt (probe + load + librería de plugins)
+│   ├── UnitHeaderParser.h/.cpp      # Extrae y parsea manifest.json de archivos ZIP .xxxunit
+│   └── AppController.h/.cpp         # Backend C++ (Q_PROPERTY / Q_INVOKABLE) expuesto a QML
+└── qml/
+    ├── Main.qml                     # ApplicationWindow raíz
+    ├── MidiSection.qml              # Probe + ComboBoxes In/Out
+    ├── LoadSection.qml              # Selector de archivo + slot + botón Upload
+    ├── PluginLibrary.qml            # Selector de directorio + SplitView (lista + metadatos)
+    ├── MetaPanel.qml                # Grilla de metadatos + tabla de parámetros
+    └── LogPanel.qml                 # Log en vivo (solo lectura)
 ```
 
 ## Requisitos
@@ -174,7 +188,7 @@ src/
 |---|---|
 | CMake | 3.20 |
 | GCC (o Clang) | GCC 9+ / Clang 10+ (C++17) |
-| Qt6 (Core, Widgets) | 6.2 |
+| Qt6 (Core, Quick, QuickControls2) | 6.2 |
 
 ### Dependencias de Ejecución
 
@@ -185,19 +199,19 @@ src/
 **Debian / Ubuntu:**
 
 ```bash
-sudo apt install build-essential cmake qt6-base-dev
+sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev
 ```
 
 **Fedora:**
 
 ```bash
-sudo dnf install gcc-c++ cmake qt6-qtbase-devel
+sudo dnf install gcc-c++ cmake qt6-qtbase-devel qt6-qtdeclarative-devel
 ```
 
 **Arch Linux:**
 
 ```bash
-sudo pacman -S base-devel cmake qt6-base
+sudo pacman -S base-devel cmake qt6-base qt6-declarative
 ```
 
 ### Instalación de logue-cli
