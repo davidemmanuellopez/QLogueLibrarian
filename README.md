@@ -10,7 +10,7 @@ A minimal cross-platform GUI wrapper for KORG logue-sdk/logue-cli tools, built w
 
 ## Motivation
 
-- **No Linux GUI exists.** Korg Sound Librarian is a Windows-only application. There is no official (or unofficial) equivalent for Linux users.
+- **No Linux GUI exists.** Korg Sound Librarian is a Windows/MAC only application. There is no official (or unofficial) equivalent for Linux users.
 - **MIDI just works on Linux.** Korg's USB-MIDI drivers are notoriously problematic on Windows (driver conflicts, unsigned driver warnings, etc.). On Linux, logue-series devices are recognized out-of-the-box as standard ALSA MIDI devices — no driver installation required.
 
 ## Current Features
@@ -127,7 +127,7 @@ Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las h
 
 ## Motivación
 
-- **No existe una GUI similar a Korg Sound Librarian para Linux.** La aplicación oficial de Korg es exclusiva de Windows. No hay alternativa gráfica oficial ni de terceros para usuarios de Linux.
+- **No existe una GUI similar a Korg Sound Librarian para Linux.** La aplicación oficial de Korg es exclusiva de Windows/MAC. No hay alternativa gráfica oficial ni de terceros para usuarios de Linux.
 - **Los drivers MIDI de Korg son conflictivos en Windows.** En Linux, los dispositivos de la serie logue son reconocidos automáticamente como dispositivos ALSA MIDI estándar, sin necesidad de instalar drivers.
 
 ## Funcionalidad Actual
