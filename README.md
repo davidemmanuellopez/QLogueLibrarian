@@ -19,7 +19,9 @@ A minimal cross-platform GUI wrapper for KORG logue-sdk/logue-cli tools, built w
 |---|---|
 | **Probe MIDI ports** | Runs `logue-cli probe -l`, parses the output and populates In/Out port selectors. Ports containing `SOUND` are auto-selected (these are the correct SysEx ports for prologue / minilogue xd). |
 | **Upload unit files** | Lets you browse for a `.prlgunit`, `.mnlgxdunit`, `.ntkdigunit` (or other logue unit format), then runs `logue-cli load -u <file> -i <in> -o <out>`. Parses the output to determine success (platform, module, CRC32). |
-| **Persistent settings** | The path to the `logue-cli` executable is saved via `QSettings` and restored on next launch. |
+| **Plugin Library browser** | Point the app at a directory containing `.xxxunit` files. All plugins are listed and selecting one displays its metadata and automatically fills the Load Unit path for quick upload. |
+| **Manifest metadata parsing** | Unit files (`.prlgunit`, `.mnlgxdunit`, etc.) are ZIP archives containing a `manifest.json`. The app extracts it via `unzip -p` and displays: platform, module, API version, developer/program IDs, unit name, and a full parameter table (name, min, max, type). |
+| **Persistent settings** | The path to the `logue-cli` executable and the plugin library directory are saved via `QSettings` and restored on next launch. The plugin directory is automatically scanned on startup. |
 | **Live log** | All `logue-cli` stdout/stderr output is shown in a log panel inside the application. |
 
 ## Project Structure
@@ -28,11 +30,13 @@ A minimal cross-platform GUI wrapper for KORG logue-sdk/logue-cli tools, built w
 src/
 ├── main.cpp                         # Application entry point
 ├── model/
-│   └── KorgEnums.h                  # Unit file extension filters
+│   ├── KorgEnums.h                  # Unit file extension filters
+│   └── UnitInfo.h/.cpp              # Data model for unit metadata (from manifest.json)
 ├── controller/
-│   └── LogueCLIWrapper.h/.cpp       # QProcess wrapper for logue-cli
+│   ├── LogueCLIWrapper.h/.cpp       # QProcess wrapper for logue-cli
+│   └── UnitHeaderParser.h/.cpp      # Extracts & parses manifest.json from .xxxunit ZIP files
 └── view/
-    └── MainWindow.h/.cpp            # Qt GUI (probe + load)
+    └── MainWindow.h/.cpp            # Qt GUI (probe + load + plugin library)
 ```
 
 ## Prerequisites
@@ -44,6 +48,12 @@ src/
 | CMake | 3.20 |
 | GCC (or Clang) | GCC 9+ / Clang 10+ (C++17) |
 | Qt6 (Core, Widgets) | 6.2 |
+
+### Runtime Dependencies
+
+| Package | Purpose |
+|---|---|
+| `unzip` | Used to extract `manifest.json` from `.xxxunit` ZIP archives. Pre-installed on most Linux distros. |
 
 **Debian / Ubuntu:**
 
@@ -136,7 +146,9 @@ Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las h
 |---|---|
 | **Detección de puertos MIDI** | Ejecuta `logue-cli probe -l`, parsea la salida y llena los selectores de puertos In/Out. Los puertos que contienen `SOUND` se seleccionan automáticamente (son los puertos SysEx correctos para prologue / minilogue xd). |
 | **Subida de archivos unit** | Permite seleccionar un archivo `.prlgunit`, `.mnlgxdunit`, `.ntkdigunit` (u otro formato logue), luego ejecuta `logue-cli load -u <archivo> -i <in> -o <out>`. Parsea la salida para determinar éxito (plataforma, módulo, CRC32). |
-| **Configuración persistente** | La ruta al ejecutable `logue-cli` se guarda con `QSettings` y se restaura al reiniciar la aplicación. |
+| **Explorador de librería de plugins** | Apuntá la app a un directorio que contenga archivos `.xxxunit`. Todos los plugins se listan y al seleccionar uno se muestran sus metadatos y se autocompleta la ruta en Load Unit para subirlo rápidamente. |
+| **Parseo de metadatos (manifest.json)** | Los archivos unit (`.prlgunit`, `.mnlgxdunit`, etc.) son archivos ZIP que contienen un `manifest.json`. La app lo extrae vía `unzip -p` y muestra: plataforma, módulo, versión de API, IDs de desarrollador/programa, nombre de la unidad, y tabla completa de parámetros (nombre, mín, máx, tipo). |
+| **Configuración persistente** | La ruta al ejecutable `logue-cli` y el directorio de la librería de plugins se guardan con `QSettings` y se restauran al reiniciar. El directorio de plugins se escanea automáticamente al iniciar. |
 | **Log en vivo** | Toda la salida stdout/stderr de `logue-cli` se muestra en un panel de log dentro de la aplicación. |
 
 ## Estructura del Proyecto
@@ -145,11 +157,13 @@ Interfaz gráfica minimalista y multiplataforma que actúa como wrapper de las h
 src/
 ├── main.cpp                         # Punto de entrada
 ├── model/
-│   └── KorgEnums.h                  # Filtros de extensiones de archivos unit
+│   ├── KorgEnums.h                  # Filtros de extensiones de archivos unit
+│   └── UnitInfo.h/.cpp              # Modelo de datos para metadatos (desde manifest.json)
 ├── controller/
-│   └── LogueCLIWrapper.h/.cpp       # Wrapper de QProcess para logue-cli
+│   ├── LogueCLIWrapper.h/.cpp       # Wrapper de QProcess para logue-cli
+│   └── UnitHeaderParser.h/.cpp      # Extrae y parsea manifest.json de archivos ZIP .xxxunit
 └── view/
-    └── MainWindow.h/.cpp            # GUI Qt (probe + load)
+    └── MainWindow.h/.cpp            # GUI Qt (probe + load + librería de plugins)
 ```
 
 ## Requisitos
@@ -161,6 +175,12 @@ src/
 | CMake | 3.20 |
 | GCC (o Clang) | GCC 9+ / Clang 10+ (C++17) |
 | Qt6 (Core, Widgets) | 6.2 |
+
+### Dependencias de Ejecución
+
+| Paquete | Propósito |
+|---|---|
+| `unzip` | Se usa para extraer `manifest.json` de los archivos ZIP `.xxxunit`. Viene preinstalado en la mayoría de las distros Linux. |
 
 **Debian / Ubuntu:**
 

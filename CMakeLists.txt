@@ -26,8 +26,12 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
+    src/model/UnitInfo.h
+    src/model/UnitInfo.cpp
     src/controller/LogueCLIWrapper.h
     src/controller/LogueCLIWrapper.cpp
+    src/controller/UnitHeaderParser.h
+    src/controller/UnitHeaderParser.cpp
     src/view/MainWindow.h
     src/view/MainWindow.cpp
 )

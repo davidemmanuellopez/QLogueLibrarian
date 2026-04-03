@@ -1,17 +1,25 @@
 #include "MainWindow.h"
 #include "model/KorgEnums.h"
+#include "controller/UnitHeaderParser.h"
 
 #include <QComboBox>
+#include <QDir>
 #include <QFileDialog>
+#include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSettings>
 #include <QSpinBox>
+#include <QSplitter>
 #include <QStatusBar>
+#include <QStringList>
+#include <QTableWidget>
 #include <QVBoxLayout>
 
 namespace qlogue {
@@ -102,6 +110,42 @@ MainWindow::MainWindow(QWidget *parent)
     m_log = new QPlainTextEdit;
     m_log->setReadOnly(true);
     m_log->setMaximumBlockCount(500);
+
+    // ── Plugin Library section ───────────────────────────────────────────
+    auto *libGrp = new QGroupBox(tr("Plugin Library"));
+    {
+        auto *lay = new QVBoxLayout(libGrp);
+
+        // directory picker row
+        auto *dirRow = new QHBoxLayout;
+        dirRow->addWidget(new QLabel(tr("Directory:")));
+        m_pluginDirEdit = new QLineEdit;
+        m_pluginDirEdit->setPlaceholderText(tr("Select plugin directory…"));
+        m_pluginDirEdit->setText(
+            QSettings().value(QStringLiteral("library/lastDir")).toString());
+        dirRow->addWidget(m_pluginDirEdit, 1);
+        auto *dirBtn = new QPushButton(tr("Browse…"));
+        connect(dirBtn, &QPushButton::clicked, this, &MainWindow::onBrowsePluginDir);
+        dirRow->addWidget(dirBtn);
+        lay->addLayout(dirRow);
+
+        // splitter: plugin list (left) + meta panel (right)
+        auto *splitter = new QSplitter(Qt::Horizontal);
+
+        m_pluginList = new QListWidget;
+        m_pluginList->setMinimumWidth(180);
+        connect(m_pluginList, &QListWidget::currentRowChanged,
+                this, &MainWindow::onPluginSelected);
+        splitter->addWidget(m_pluginList);
+        splitter->addWidget(buildMetaPanel());
+        splitter->setStretchFactor(0, 1);
+        splitter->setStretchFactor(1, 2);
+
+        lay->addWidget(splitter, 1);
+    }
+
+    // ── Assemble root layout ─────────────────────────────────────────────
+    root->addWidget(libGrp, 2);
     root->addWidget(m_log, 1);
 
     // ── Status bar ──────────────────────────────────────────────────────
@@ -114,6 +158,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_cli, &LogueCLIWrapper::probeFinished,  this, &MainWindow::onProbeResult);
     connect(m_cli, &LogueCLIWrapper::loadFinished,   this, &MainWindow::onLoadResult);
     connect(m_cli, &LogueCLIWrapper::errorOccurred,  this, &MainWindow::onError);
+
+    // ── Restore last plugin directory ───────────────────────────────────
+    const QString lastDir = m_pluginDirEdit->text();
+    if (!lastDir.isEmpty() && QDir(lastDir).exists())
+        scanPluginDir(lastDir);
 }
 
 // ─── Slots ──────────────────────────────────────────────────────────────────
@@ -197,5 +246,148 @@ void MainWindow::onError(QString msg) {
 void MainWindow::appendLog(const QString &text) {
     m_log->appendPlainText(text);
 }
+
+// ─── Plugin Library ──────────────────────────────────────────────────────────
+
+QWidget *MainWindow::buildMetaPanel()
+{
+    auto *panel = new QWidget;
+    auto *vlay  = new QVBoxLayout(panel);
+    vlay->setContentsMargins(4, 0, 0, 0);
+
+    auto *form = new QFormLayout;
+    form->setLabelAlignment(Qt::AlignRight);
+
+    auto makeLabel = [](){ auto *l = new QLabel(QStringLiteral("—")); l->setWordWrap(true); return l; };
+
+    m_metaName      = makeLabel(); form->addRow(tr("Name:"),     m_metaName);
+    m_metaPlatform  = makeLabel(); form->addRow(tr("Platform:"), m_metaPlatform);
+    m_metaModule    = makeLabel(); form->addRow(tr("Module:"),   m_metaModule);
+    m_metaVersion   = makeLabel(); form->addRow(tr("Version:"),  m_metaVersion);
+    m_metaApi       = makeLabel(); form->addRow(tr("API:"),      m_metaApi);
+    m_metaDevId     = makeLabel(); form->addRow(tr("Dev ID:"),   m_metaDevId);
+    m_metaPrgId     = makeLabel(); form->addRow(tr("Prg ID:"),   m_metaPrgId);
+    m_metaNumParams = makeLabel(); form->addRow(tr("Params:"),   m_metaNumParams);
+    vlay->addLayout(form);
+
+    // parameter table
+    m_paramsTable = new QTableWidget(0, 4);
+    m_paramsTable->setHorizontalHeaderLabels(
+        {tr("Name"), tr("Min"), tr("Max"), tr("Type")});
+    m_paramsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_paramsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    m_paramsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_paramsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_paramsTable->setAlternatingRowColors(true);
+    vlay->addWidget(m_paramsTable, 1);
+
+    return panel;
+}
+
+void MainWindow::onBrowsePluginDir()
+{
+    const QString dir = QFileDialog::getExistingDirectory(
+        this, tr("Select Plugin Directory"),
+        QSettings().value(QStringLiteral("library/lastDir"), QDir::homePath()).toString());
+    if (dir.isEmpty()) return;
+    QSettings().setValue(QStringLiteral("library/lastDir"), dir);
+    m_pluginDirEdit->setText(dir);
+    scanPluginDir(dir);
+}
+
+void MainWindow::scanPluginDir(const QString &dirPath)
+{
+    m_units.clear();
+    m_pluginList->clear();
+    clearUnitMeta();
+
+    // file extensions that logue-cli recognises
+    static const QStringList filters = {
+        QStringLiteral("*.prlgunit"),
+        QStringLiteral("*.mnlgxdunit"),
+        QStringLiteral("*.ntkdigunit"),
+        QStringLiteral("*.drmlgunit"),
+        QStringLiteral("*.nts1mkiiunit"),
+        QStringLiteral("*.nts3unit"),
+        QStringLiteral("*.mkg2unit"),
+        QStringLiteral("*.unit"),
+    };
+
+    QDir dir(dirPath);
+    const QFileInfoList entries = dir.entryInfoList(filters,
+                                                     QDir::Files | QDir::Readable,
+                                                     QDir::Name);
+
+    for (const QFileInfo &fi : entries) {
+        UnitInfo info = UnitHeaderParser::parse(fi.absoluteFilePath());
+        m_units.append(info);
+
+        // display the unit name from header (fallback to filename)
+        const QString label = info.isValid && !info.name.trimmed().isEmpty()
+                              ? info.name.trimmed()
+                              : fi.fileName();
+        auto *item = new QListWidgetItem(label, m_pluginList);
+        if (!info.isValid)
+            item->setToolTip(tr("Could not parse header"));
+    }
+
+    m_statusLabel->setText(tr("Library: %1 plugin(s) found").arg(m_units.size()));
+    appendLog(tr("── Plugin dir scanned: %1 file(s) ──").arg(m_units.size()));
+}
+
+void MainWindow::onPluginSelected(int row)
+{
+    if (row < 0 || row >= m_units.size()) {
+        clearUnitMeta();
+        return;
+    }
+    const UnitInfo &info = m_units.at(row);
+    showUnitMeta(info);
+    m_unitPathEdit->setText(info.filePath);
+}
+
+void MainWindow::showUnitMeta(const UnitInfo &info)
+{
+    if (!info.isValid) {
+        clearUnitMeta();
+        m_metaName->setText(tr("(invalid header)"));
+        return;
+    }
+
+    m_metaName->setText(info.name.trimmed().isEmpty()
+                        ? tr("(no name)") : info.name.trimmed());
+    m_metaPlatform->setText(info.platform);
+    m_metaModule->setText(info.module);
+    m_metaVersion->setText(info.version);
+    m_metaApi->setText(info.api);
+    m_metaDevId->setText(QString::number(info.devId));
+    m_metaPrgId->setText(QString::number(info.prgId));
+    m_metaNumParams->setText(QString::number(info.numParams));
+
+    // populate params table
+    m_paramsTable->setRowCount(static_cast<int>(info.params.size()));
+    for (int i = 0; i < info.params.size(); ++i) {
+        const UnitParam &p = info.params.at(i);
+        m_paramsTable->setItem(i, 0, new QTableWidgetItem(p.name));
+        m_paramsTable->setItem(i, 1, new QTableWidgetItem(QString::number(p.min)));
+        m_paramsTable->setItem(i, 2, new QTableWidgetItem(QString::number(p.max)));
+        m_paramsTable->setItem(i, 3, new QTableWidgetItem(p.type));
+    }
+}
+
+void MainWindow::clearUnitMeta()
+{
+    const QString dash = QStringLiteral("—");
+    m_metaName->setText(dash);
+    m_metaPlatform->setText(dash);
+    m_metaModule->setText(dash);
+    m_metaVersion->setText(dash);
+    m_metaApi->setText(dash);
+    m_metaDevId->setText(dash);
+    m_metaPrgId->setText(dash);
+    m_metaNumParams->setText(dash);
+    m_paramsTable->setRowCount(0);
+}
+
 
 } // namespace qlogue
